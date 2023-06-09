@@ -1,23 +1,41 @@
 <script>
 	import 'https://unpkg.com/@picocss/pico@latest/css/pico.min.css';
 	import isIp from 'is-ip'
-	let generatedDomain, subdomain, ipaddress, protocol
+	let generatedDomain, subdomain, ipaddress, protocol, option
 	let domain_suffix = "sslip.io"
 	const supportedIpProtocols = {
 		"nip.io": [4, 6],
 		"sslip.io": [4],
 		"traefik.me": [4]
-	}
+	};
+	const supportedOptions = {
+		"nip.io": ["dash", "hex"],
+		"sslip.io": ["dash"],
+		"traefik.me": ["dash"]
+	};
 
 	$: ipProtocol = isIp.version(ipaddress);
-	$: ipValid = !~supportedIpProtocols[domain_suffix].indexOf(ipProtocol)
-
-	let convertIntToHex = (num) => (num).toString(16).replace(/^(\w)$/, "0$1");
-
+	$: ipValid = !~supportedIpProtocols[domain_suffix].indexOf(ipProtocol);
+	$: optionValid = !~supportedOptions[domain_suffix].indexOf(option);
+	$: formValid = (ipValid || optionValid);
+	
+	let convertIntToHex = (num) => parseInt(num).toString(16).replace(/^(\w)$/, "0$1");
+	let hexNotation = (address) => {
+		let arry = address.split(".").map(dec => convertIntToHex(dec));
+		if (arry.length == 4) {
+			return arry.join("")
+		}
+		return address;
+	};
 	let generateDomain = () => {
+		let processed_ip
 		subdomain = subdomain.trim()
 		ipaddress = ipaddress.trim()
-		let processed_ip = ipaddress.replace(/\./g, "-").replace(/\:/g, "-");
+		if (option == "hex"){
+			processed_ip = hexNotation(ipaddress.trim());
+		}else{
+			processed_ip = ipaddress.replace(/\./g, "-").replace(/\:/g, "-");
+		}
 		generatedDomain = `${subdomain}.${processed_ip}.${domain_suffix}`;
 	}
 	let copyToClipboard = (str) => {
@@ -58,7 +76,14 @@
 				<option value="ws">ws</option>
 			</select>
 		</label>
-		<button type="submit" disabled={ipValid}>Generate</button>
+		<label for="option">
+			Option: 
+			<select id="option" bind:value="{option}" aria-invalid="{optionValid}" required>
+				<option value="dash">dash</option>
+				<option value="hex">hex</option>
+			</select>
+		</label>
+		<button type="submit" disabled={formValid}>Generate</button>
 	  </div>
 	</form>
 	<div class="grid">
